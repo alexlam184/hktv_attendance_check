@@ -9,3 +9,9 @@ Procedure:
 ```bash
 sh sh D:\personal\attendance_check\check_today_in_time.sh
 ```
+
+
+For python setup
+1. install camelot
+2. install java
+3. install ghostscript from https://www.ghostscript.com/releases/gsdnld.html
