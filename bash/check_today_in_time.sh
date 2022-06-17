@@ -24,8 +24,8 @@ NC='\033[0m' # No Color
 username=YWxhbQ==
 password=SEtUVi0xMjM=
 
-alias jq='/d/personal/hktv_attendance_check/driver/jq-win64.exe'
-
+# alias jq='/d/personal/hktv_attendance_check/driver/jq-win64.exe'  # in office
+alias jq='/d/git_project/hktv_attendance_check/driver/jq-win64.exe' # in laptop
 cookies=.cookies.tmp
 
 timestamp=`date +"%Y-%m-%d %H:%M"`
