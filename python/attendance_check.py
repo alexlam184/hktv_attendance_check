@@ -7,7 +7,6 @@ import requests
 import base64
 import camelot
 import os
-
 username = base64.b64encode(b'alam')
 password = base64.b64encode(b'HKTV-123')
 pdf_path = r'D:\git_project\hktv_attendance_check\doc\將軍澳穿梭巴士時間表.pdf'
