@@ -24,7 +24,7 @@ NC='\033[0m' # No Color
 username=YWxhbQ==
 password=SEtUVi0xMjM=
 
-alias jq='/d/personal/attendance_check/jq-win64.exe'
+alias jq='/d/personal/hktv_attendance_check/driver/jq-win64.exe'
 
 cookies=.cookies.tmp
 
