@@ -1,9 +1,12 @@
 import time
+import datetime
+from datetime import datetime,timedelta,date
 import traceback
 import pandas as pd
 import numpy as np
 import requests
 import base64
+import re
 
 from camelot.core import TableList
 from bus_schedule_detector import get_bus_stop_schedule  # need tabulate, cv2
@@ -11,6 +14,7 @@ from bus_schedule_detector import get_bus_stop_schedule  # need tabulate, cv2
 username = base64.b64decode(b'YWxhbQ==') # decode my base64 encoded username and password
 password = base64.b64decode(b'SEtUVi0xMjM=')
 pdf_path = r'./doc/將軍澳穿梭巴士時間表.pdf'
+working_hr = 9
 
 year, month, day, hour, min = map(int, time.strftime("%Y %m %d %H %M").split())
 # timesheet cutoff is 15th in every month
@@ -21,6 +25,14 @@ if day > 15:
     else:
         month += 1
 
+def timing(f):
+    def wrap(*args, **kwargs):
+        time1 = time.time()
+        ret = f(*args, **kwargs)
+        time2 = time.time()
+        print('{:s} function took {:.3f} s'.format(f.__name__, (time2-time1)))
+        return ret
+    return wrap
 
 def login() -> any:
     try:
@@ -87,16 +99,46 @@ def organize_timetable(tables: TableList) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     return sched_lohas, sched_tko
 
-
+@timing
 def main():
     login()
     record = get_attendance_record()
     logout()
 
-    print(record['data'][0])
+    try:
+        today_date = time.strftime("%Y-%m-%d")
+        keys = [i for i in record['data'] if i['fldDate'] == today_date]
+        now = datetime.now()
+        clockIn = datetime.combine(date(now.year,now.month,now.day),datetime.strptime(keys[0]['fldOriIn1'], '%H:%M').time())
+        print('Today clock In time = '+str(clockIn))
+    except IndexError as e:
+        print('[ERROR] no today attendance')
+    
+    clockOut = clockIn + pd.DateOffset(hours=working_hr)
+    print('Predicted clock Out time = '+str(clockOut))
+
 
     tables = get_bus_stop_schedule(pdf_path=pdf_path)
     sched_lohas, sched_tko = organize_timetable(tables)
+
+
+    def filter_text(words:str):
+            #print('original='+str(words))
+            if str(words) != 'nan':
+                t= re.sub(r'[^0-9]', '', words)
+            else:
+                t =''
+            #print('filter='+t)
+            return t
+
+    
+    # filter tko time only
+    sched_tko = sched_tko.loc[sched_tko['from_weekday'] != '---']
+    sched_tko = sched_tko.applymap(filter_text)
+    sched_tko[sched_tko.from_weekday!='']
+    sched_tko['from_weekday'] = pd.to_datetime(sched_tko['from_weekday'], format='%H%M')
+    print(sched_tko)
+
     # print(sched_lohas)
     return
 
