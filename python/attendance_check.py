@@ -8,7 +8,7 @@ import base64
 from camelot.core import TableList
 from bus_schedule_detector import get_bus_stop_schedule  # need tabulate, cv2
 
-username = base64.b64decode(b'YWxhbQ==')
+username = base64.b64decode(b'YWxhbQ==') # decode my base64 encoded username and password
 password = base64.b64decode(b'SEtUVi0xMjM=')
 pdf_path = r'./doc/將軍澳穿梭巴士時間表.pdf'
 cookie_file = r'cookie'
