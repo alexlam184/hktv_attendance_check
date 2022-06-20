@@ -29,7 +29,7 @@ alias jq='/d/git_project/hktv_attendance_check/driver/jq-win64.exe' # in laptop
 cookies=.cookies.tmp
 
 timestamp=`date +"%Y-%m-%d %H:%M"`
-yyyymmdd=${timestamp:0:10}
+yyyymmdd=${timestamp:0:10}\k\
 dd=${yyyymmdd:8:2}
 mm=${yyyymmdd:5:2}
 yyyy=${yyyymmdd:0:4}
