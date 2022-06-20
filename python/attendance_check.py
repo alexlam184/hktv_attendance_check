@@ -11,7 +11,6 @@ from bus_schedule_detector import get_bus_stop_schedule  # need tabulate, cv2
 username = base64.b64decode(b'YWxhbQ==') # decode my base64 encoded username and password
 password = base64.b64decode(b'SEtUVi0xMjM=')
 pdf_path = r'./doc/將軍澳穿梭巴士時間表.pdf'
-cookie_file = r'cookie'
 
 year, month, day, hour, min = map(int, time.strftime("%Y %m %d %H %M").split())
 # timesheet cutoff is 15th in every month
