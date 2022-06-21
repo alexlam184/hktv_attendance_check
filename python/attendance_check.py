@@ -16,21 +16,12 @@ password = base64.b64decode(b'SEtUVi0xMjM=')
 pdf_path = r'./doc/將軍澳穿梭巴士時間表.pdf'
 working_hr = 9
 
-year, month, day, hour, min = map(int, time.strftime("%Y %m %d %H %M").split())
-# timesheet cutoff is 15th in every month
-if day > 15:
-    if month == 12:
-        month = 1
-        year += 1
-    else:
-        month += 1
-
 def timing(f):
     def wrap(*args, **kwargs):
         time1 = time.time()
         ret = f(*args, **kwargs)
         time2 = time.time()
-        print('{:s} function took {:.3f} s'.format(f.__name__, (time2-time1)))
+        print('[INFO] "{:s}" function runtime {:.3f} s'.format(f.__name__, (time2-time1)))
         return ret
     return wrap
 
@@ -52,10 +43,19 @@ def login() -> any:
 
 
 def get_attendance_record() -> dict:
+
+    search_year, search_month, search_day = map(int, time.strftime("%Y %m %d").split())
+    # timesheet cutoff is 15th in every month
+    if search_day > 15:
+        if search_month == 12:
+            search_month = 1
+            search_year += 1
+        else:
+            search_month += 1
     try:
         url = "https://hrms.hktv.com.hk/api/Attendance/getpages"
         data = {'page': 1, 'limit': 31,
-                'types': 1, 'fldMonth': '{yyyy}-{mm}'.format(yyyy=year, mm=month), 'fldCatID': '', 'fldBranch': '', 'fldEmpPosition': ''}
+                'types': 1, 'fldMonth': '{yyyy}-{mm}'.format(yyyy=search_year, mm=search_month), 'fldCatID': '', 'fldBranch': '', 'fldEmpPosition': ''}
         response = requests.get(url=url, cookies=web_cookie, data=data)
         record = response.json()
         print('[INFO] get data response sent,status={}'.format(
@@ -73,7 +73,7 @@ def logout() -> any:
         response = requests.post(url=url, cookies=web_cookie)
         print('[INFO] logout response sent,status={}'.format(
             response.status_code))
-        print('logout success')
+        print('[INFO] logout success')
     except Exception as e:
         print('[ERROR] logout HR system error')
         traceback.print_exc()
@@ -81,10 +81,17 @@ def logout() -> any:
 
 
 def organize_timetable(tables: TableList) -> tuple[pd.DataFrame, pd.DataFrame]:
+
+
+
+
+
     route: pd.DataFrame = tables[0]  # useless route table
     sched: pd.DataFrame = tables[1]
     sched.rename(columns={'開車時間及地點': 'shift', 'Unnamed: 1': 'to_weekday',
                  'Unnamed: 2': 'from_weekday'}, inplace=True)
+    del sched['Unnamed: 5'] # delete weekend schedule
+    del sched['Unnamed: 6']
 
     # organize lohas data for weekday only
     lohas_early = sched.loc[2:25]
@@ -94,52 +101,82 @@ def organize_timetable(tables: TableList) -> tuple[pd.DataFrame, pd.DataFrame]:
                       'Unnamed: 4': 'from_weekday'}, inplace=True)
     sched_lohas = pd.concat([lohas_early, lohas_late], axis=0)
 
-    # organize tko data for weekday only
-    sched_tko = sched.loc[28:50]
+    # organize tkl data for weekday only
+    sched_tkl = sched.loc[28:50]
 
-    return sched_lohas, sched_tko
+    del sched_tkl['Unnamed: 3']
+    del sched_tkl['Unnamed: 4']
+    del sched_lohas['Unnamed: 3']
+    del sched_lohas['Unnamed: 4']
 
-@timing
-def main():
-    login()
-    record = get_attendance_record()
-    logout()
+    def filter_text(words:str):
+        if str(words) != 'nan' and len(words)>3 and "-" not in words:
+            t= re.sub(r'[^0-9]', '', words)
+            t = datetime.strptime(t, '%H%M').time()
+        else:
+            t =''
+        return t
 
+    
+    sched_tkl = sched_tkl.applymap(filter_text)
+    sched_lohas = sched_lohas.applymap(filter_text)
+
+
+
+
+    return sched_lohas, sched_tkl
+
+
+def get_clocktime(record:dict) -> tuple[pd.DataFrame, pd.DataFrame]:
+    
+    #record={'data':[{'fldDate':"2022-06-21",'fldOriIn1':'09:11'}]} # fake record
     try:
-        today_date = time.strftime("%Y-%m-%d")
-        keys = [i for i in record['data'] if i['fldDate'] == today_date]
         now = datetime.now()
-        clockIn = datetime.combine(date(now.year,now.month,now.day),datetime.strptime(keys[0]['fldOriIn1'], '%H:%M').time())
-        print('Today clock In time = '+str(clockIn))
+        attendance_record = [i for i in record['data'] if i['fldDate'] == now.strftime("%Y-%m-%d")]
+        
+        if attendance_record[0]['fldOriIn1'] != None:
+            clockIn = datetime.combine(date(now.year,now.month,now.day),datetime.strptime(attendance_record[0]['fldOriIn1'], '%H:%M').time())
+        else:
+            print('[INFO] attendance no record')
+            return
+        
+        print('[INFO] clock In time = '+str(clockIn))
     except IndexError as e:
         print('[ERROR] no today attendance')
     
     clockOut = clockIn + pd.DateOffset(hours=working_hr)
-    print('Predicted clock Out time = '+str(clockOut))
+    print('[INFO] clock Out time = '+str(clockOut))
 
+    return clockIn , clockOut
+
+@timing
+def main() -> any:
+    print("[INFO] Current Time : "+datetime.now().strftime("%Y-%m-%d %H:%M"))
+    login()
+    record = get_attendance_record()
+    logout()
+    clockIn , clockOut = get_clocktime(record=record)
 
     tables = get_bus_stop_schedule(pdf_path=pdf_path)
-    sched_lohas, sched_tko = organize_timetable(tables)
+    sched_lohas, sched_tkl = organize_timetable(tables)
+
+    # print("tkl schedule=\n",sched_tkl)
+    # print("Lohas schedule=\n",sched_lohas)
 
 
-    def filter_text(words:str):
-            #print('original='+str(words))
-            if str(words) != 'nan':
-                t= re.sub(r'[^0-9]', '', words)
-            else:
-                t =''
-            #print('filter='+t)
-            return t
+    index = sched_tkl['from_weekday'].searchsorted(clockOut.time()) # find index of the row which is nearest to the clock out time
+    target_tkl_bus = sched_tkl.iloc[[index]].iloc[0]['from_weekday']
+    print("[INFO] target bus leave to Tiu Keng Leng = "+str(target_tkl_bus))
 
-    
-    # filter tko time only
-    sched_tko = sched_tko.loc[sched_tko['from_weekday'] != '---']
-    sched_tko = sched_tko.applymap(filter_text)
-    sched_tko[sched_tko.from_weekday!='']
-    sched_tko['from_weekday'] = pd.to_datetime(sched_tko['from_weekday'], format='%H%M')
-    print(sched_tko)
+    index = sched_lohas['from_weekday'].searchsorted(clockOut.time()) # find index of the row which is nearest to the clock out time
+    target_lohas_bus = sched_lohas.iloc[[index]].iloc[0]['from_weekday']
+    print("[INFO] target bus leave to The Lohas = "+str(target_lohas_bus))
 
-    # print(sched_lohas)
+    index = sched_lohas['from_weekday'].searchsorted(datetime.now().time()) # find index of the row which is nearest to the clock out time
+    target_lohas_bus = sched_lohas.iloc[[index]].iloc[0]['from_weekday']
+    print("[INFO] current bus the nearest time to The Lohas = "+str(target_lohas_bus))
+
+
     return
 
 
