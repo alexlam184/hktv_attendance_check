@@ -7,7 +7,6 @@ import numpy as np
 import requests
 import base64
 import re
-
 from camelot.core import TableList
 from bus_schedule_detector import get_bus_stop_schedule  # need tabulate, cv2
 
@@ -81,10 +80,6 @@ def logout() -> any:
 
 
 def organize_timetable(tables: TableList) -> tuple[pd.DataFrame, pd.DataFrame]:
-
-
-
-
 
     route: pd.DataFrame = tables[0]  # useless route table
     sched: pd.DataFrame = tables[1]
@@ -170,12 +165,7 @@ def main() -> any:
 
     index = sched_lohas['from_weekday'].searchsorted(clockOut.time()) # find index of the row which is nearest to the clock out time
     target_lohas_bus = sched_lohas.iloc[[index]].iloc[0]['from_weekday']
-    print("[INFO] target bus leave to The Lohas = "+str(target_lohas_bus))
-
-    index = sched_lohas['from_weekday'].searchsorted(datetime.now().time()) # find index of the row which is nearest to the clock out time
-    target_lohas_bus = sched_lohas.iloc[[index]].iloc[0]['from_weekday']
-    print("[INFO] current bus the nearest time to The Lohas = "+str(target_lohas_bus))
-
+    print("[INFO] target bus leave to Lohas Park = "+str(target_lohas_bus))
 
     return
 

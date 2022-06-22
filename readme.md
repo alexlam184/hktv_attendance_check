@@ -15,3 +15,5 @@ For python setup
 1. pip install camelot-py,opencv-python ,tabulate ghostscript
 2. install java
 3. download ghostscript from https://www.ghostscript.com/releases/gsdnld.html in pc
+
+**** don't use minecart, it modify the pdfminer file.
