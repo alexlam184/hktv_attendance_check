@@ -1,26 +1,27 @@
 import time
 import datetime
-from datetime import datetime,timedelta,date
+from datetime import datetime,date
 import traceback
 import pandas as pd
-import numpy as np
 import requests
 import base64
 import re
 from camelot.core import TableList
 from bus_schedule_detector import get_bus_stop_schedule  # need tabulate, cv2
+import logging
 
 username = base64.b64decode(b'YWxhbQ==') # decode my base64 encoded username and password
 password = base64.b64decode(b'SEtUVi0xMjM=')
 pdf_path = r'./doc/將軍澳穿梭巴士時間表.pdf'
 working_hr = 9
+logging.basicConfig(level=logging.INFO,format='%(levelname)s : %(message)s') # logging.DEBUG show all log, logging.INFO only show info message
 
 def timing(f):
     def wrap(*args, **kwargs):
         time1 = time.time()
         ret = f(*args, **kwargs)
         time2 = time.time()
-        print('[INFO] "{:s}" function runtime {:.3f} s'.format(f.__name__, (time2-time1)))
+        logging.info(' "{:s}" function runtime {:.3f} s'.format(f.__name__, (time2-time1)))
         return ret
     return wrap
 
@@ -30,13 +31,13 @@ def login() -> any:
         data = {'action': 'login', 'fldEmpLoginID': username,
                 'fldEmpPwd': password, 'code': 'undefined'}
         response = requests.post(url=url, data=data)
-        print('[INFO] login response sent,status={}'.format(
+        logging.debug('Login response sent,status={}'.format(
             response.status_code))
         global web_cookie
         web_cookie = response.cookies
 
     except Exception as e:
-        print('[ERROR] access HR system error')
+        logging.error('Access HR system error')
         traceback.print_exc()
     return
 
@@ -57,11 +58,11 @@ def get_attendance_record() -> dict:
                 'types': 1, 'fldMonth': '{yyyy}-{mm}'.format(yyyy=search_year, mm=search_month), 'fldCatID': '', 'fldBranch': '', 'fldEmpPosition': ''}
         response = requests.get(url=url, cookies=web_cookie, data=data)
         record = response.json()
-        print('[INFO] get data response sent,status={}'.format(
+        logging.debug('Get data response sent,status={}'.format(
             response.status_code))
         return record
     except Exception as e:
-        print('[ERROR] get attendance record error')
+        logging.error('Get attendance record error')
         traceback.print_exc()
         return
 
@@ -70,11 +71,11 @@ def logout() -> any:
     try:
         url = 'https://hrms.hktv.com.hk/api/Admin/LogOut'
         response = requests.post(url=url, cookies=web_cookie)
-        print('[INFO] logout response sent,status={}'.format(
+        logging.debug('Logout response sent,status={}'.format(
             response.status_code))
-        print('[INFO] logout success')
+        logging.debug('Logout success')
     except Exception as e:
-        print('[ERROR] logout HR system error')
+        logging.error('Logout HR system error')
         traceback.print_exc()
     return
 
@@ -132,21 +133,21 @@ def get_clocktime(record:dict) -> tuple[pd.DataFrame, pd.DataFrame]:
         if attendance_record[0]['fldOriIn1'] != None:
             clockIn = datetime.combine(date(now.year,now.month,now.day),datetime.strptime(attendance_record[0]['fldOriIn1'], '%H:%M').time())
         else:
-            print('[INFO] attendance no record')
-            return
+            logging.info('Attendance no record, Please wait until the HR system update')
+            exit()
         
-        print('[INFO] clock In time = '+str(clockIn))
+        logging.info('Clock In time = '+str(clockIn))
     except IndexError as e:
-        print('[ERROR] no today attendance')
+        logging.error('No today attendance')
     
     clockOut = clockIn + pd.DateOffset(hours=working_hr)
-    print('[INFO] clock Out time = '+str(clockOut))
+    logging.info('Clock Out time = '+str(clockOut))
 
     return clockIn , clockOut
 
 @timing
 def main() -> any:
-    print("[INFO] Current Time : "+datetime.now().strftime("%Y-%m-%d %H:%M"))
+    logging.info('Current Time : '+datetime.now().strftime("%Y-%m-%d %H:%M"))
     login()
     record = get_attendance_record()
     logout()
@@ -161,11 +162,11 @@ def main() -> any:
 
     index = sched_tkl['from_weekday'].searchsorted(clockOut.time()) # find index of the row which is nearest to the clock out time
     target_tkl_bus = sched_tkl.iloc[[index]].iloc[0]['from_weekday']
-    print("[INFO] target bus leave to Tiu Keng Leng = "+str(target_tkl_bus))
+    logging.info('Target bus leave to Tiu Keng Leng = '+str(target_tkl_bus))
 
     index = sched_lohas['from_weekday'].searchsorted(clockOut.time()) # find index of the row which is nearest to the clock out time
     target_lohas_bus = sched_lohas.iloc[[index]].iloc[0]['from_weekday']
-    print("[INFO] target bus leave to Lohas Park = "+str(target_lohas_bus))
+    logging.info('Target bus leave to Lohas Park = '+str(target_lohas_bus))
 
     return
 
