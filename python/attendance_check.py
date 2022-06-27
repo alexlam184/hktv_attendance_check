@@ -9,19 +9,22 @@ import re
 from camelot.core import TableList
 from bus_schedule_detector import get_bus_stop_schedule  # need tabulate, cv2
 import logging
+import sys
 
 username = base64.b64decode(b'YWxhbQ==') # decode my base64 encoded username and password
 password = base64.b64decode(b'SEtUVi0xMjM=')
 pdf_path = r'./doc/將軍澳穿梭巴士時間表.pdf'
 working_hr = 9
-logging.basicConfig(level=logging.INFO,format='%(levelname)s : %(message)s') # logging.DEBUG show all log, logging.INFO only show info message
+logging.basicConfig(level=logging.INFO,format='%(levelname)s : %(message)s') # logging.DEBUG show all log, logger.info only show info message
+logger = logging.getLogger(__name__)
+
 
 def timing(f):
     def wrap(*args, **kwargs):
         time1 = time.time()
         ret = f(*args, **kwargs)
         time2 = time.time()
-        logging.info(' "{:s}" function runtime {:.3f} s'.format(f.__name__, (time2-time1)))
+        logger.info(' "{:s}" function runtime {:.3f} s'.format(f.__name__, (time2-time1)))
         return ret
     return wrap
 
@@ -133,43 +136,45 @@ def get_clocktime(record:dict) -> tuple[pd.DataFrame, pd.DataFrame]:
         if attendance_record[0]['fldOriIn1'] != None:
             clockIn = datetime.combine(date(now.year,now.month,now.day),datetime.strptime(attendance_record[0]['fldOriIn1'], '%H:%M').time())
         else:
-            logging.info('Attendance no record, Please wait until the HR system update')
-            exit()
+            logger.info('Attendance no record, Please wait until the HR system update')
+            sys.exit()
         
-        logging.info('Clock In time = '+str(clockIn))
+        logger.info('Clock In time = '+str(clockIn))
     except IndexError as e:
         logging.error('No today attendance')
     
     clockOut = clockIn + pd.DateOffset(hours=working_hr)
-    logging.info('Clock Out time = '+str(clockOut))
+    logger.info('Clock Out time = '+str(clockOut))
 
     return clockIn , clockOut
 
 @timing
 def main() -> any:
-    logging.info('Current Time : '+datetime.now().strftime("%Y-%m-%d %H:%M"))
-    login()
-    record = get_attendance_record()
-    logout()
-    clockIn , clockOut = get_clocktime(record=record)
+    try:
+        logger.info('Current Time : '+datetime.now().strftime("%Y-%m-%d %H:%M"))
+        login()
+        record = get_attendance_record()
+        logout()
+        clockIn , clockOut = get_clocktime(record=record)
 
-    tables = get_bus_stop_schedule(pdf_path=pdf_path)
-    sched_lohas, sched_tkl = organize_timetable(tables)
+        tables = get_bus_stop_schedule(pdf_path=pdf_path)
+        sched_lohas, sched_tkl = organize_timetable(tables)
 
-    # print("tkl schedule=\n",sched_tkl)
-    # print("Lohas schedule=\n",sched_lohas)
+        # print("tkl schedule=\n",sched_tkl)
+        # print("Lohas schedule=\n",sched_lohas)
 
 
-    index = sched_tkl['from_weekday'].searchsorted(clockOut.time()) # find index of the row which is nearest to the clock out time
-    target_tkl_bus = sched_tkl.iloc[[index]].iloc[0]['from_weekday']
-    logging.info('Target bus leave to Tiu Keng Leng = '+str(target_tkl_bus))
+        index = sched_tkl['from_weekday'].searchsorted(clockOut.time()) # find index of the row which is nearest to the clock out time
+        target_tkl_bus = sched_tkl.iloc[[index]].iloc[0]['from_weekday']
+        logger.info('Target bus leave to Tiu Keng Leng = '+str(target_tkl_bus))
 
-    index = sched_lohas['from_weekday'].searchsorted(clockOut.time()) # find index of the row which is nearest to the clock out time
-    target_lohas_bus = sched_lohas.iloc[[index]].iloc[0]['from_weekday']
-    logging.info('Target bus leave to Lohas Park = '+str(target_lohas_bus))
-
-    return
-
+        index = sched_lohas['from_weekday'].searchsorted(clockOut.time()) # find index of the row which is nearest to the clock out time
+        target_lohas_bus = sched_lohas.iloc[[index]].iloc[0]['from_weekday']
+        logger.info('Target bus leave to Lohas Park = '+str(target_lohas_bus))
+    except SystemExit as exit:
+        logger.debug(exit)
+    finally:
+        return
 
 if __name__ == "__main__":
-    main()
+    main()        
