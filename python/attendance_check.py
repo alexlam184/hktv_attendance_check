@@ -173,6 +173,9 @@ def main() -> any:
         logger.info('Target bus leave to Lohas Park = '+str(target_lohas_bus))
     except SystemExit as exit:
         logger.debug(exit)
+    except Exception as e:
+        logging.error(e, exc_info=True)
+        
     finally:
         return
 
