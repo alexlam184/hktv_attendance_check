@@ -21,6 +21,6 @@ username,password
 YwiFb=a,SqUVi7xMDM3
 ``` 
 username and password encoded by base64
-5. run python
+4. run python
 
 **** don't use minecart, it modify the pdfminer file.

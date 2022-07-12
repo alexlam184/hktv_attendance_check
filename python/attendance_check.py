@@ -85,7 +85,7 @@ def logout() -> any:
     return
 
 
-def organize_timetable(tables: TableList) -> tuple[pd.DataFrame, pd.DataFrame]:
+def organize_timetable(tables: list[pd.DataFrame]) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     route: pd.DataFrame = tables[0]  # useless route table
     sched: pd.DataFrame = tables[1]
@@ -161,10 +161,6 @@ def main() -> any:
 
         tables = get_bus_stop_schedule(pdf_path=pdf_path)
         sched_lohas, sched_tkl = organize_timetable(tables)
-
-        # print("tkl schedule=\n",sched_tkl)
-        # print("Lohas schedule=\n",sched_lohas)
-
 
         index = sched_tkl['from_weekday'].searchsorted(clockOut.time()) # find index of the row which is nearest to the clock out time
         target_tkl_bus = sched_tkl.iloc[[index]].iloc[0]['from_weekday']
