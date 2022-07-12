@@ -15,5 +15,12 @@ For python setup
 1. pip install camelot-py,opencv-python ,tabulate ghostscript
 2. install java
 3. download ghostscript from https://www.ghostscript.com/releases/gsdnld.html in pc
+3. create "auth.csv" with the content below in doc folder
+```
+username,password
+YwiFb=a,SqUVi7xMDM3
+``` 
+username and password encoded by base64
+5. run python
 
 **** don't use minecart, it modify the pdfminer file.
