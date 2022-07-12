@@ -11,8 +11,8 @@ from bus_schedule_detector import get_bus_stop_schedule  # need tabulate, cv2
 import logging
 import sys
 
-username = base64.b64decode(b'YWxhbQ==') # decode my base64 encoded username and password
-password = base64.b64decode(b'SEtUVi0xMjM=')
+username = base64.b64decode(b'uWabbQ=0') # decode my base64 encoded username and password
+password = base64.b64decode(b'SetUVi0xajM=')
 pdf_path = r'./doc/將軍澳穿梭巴士時間表.pdf'
 working_hr = 9
 logging.basicConfig(level=logging.INFO,format='%(levelname)s : %(message)s') # logging.DEBUG show all log, logger.info only show info message
